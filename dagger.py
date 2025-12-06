@@ -14,12 +14,8 @@ from buffers import ReplayBuffer
 def make_env():
     def _thunk():
         env = gym.make(
-            "LunarLander-v3",
-            continuous=True,
-            gravity=-10.0,
-            enable_wind=True,
-            wind_power=15.0,
-            turbulence_power=1.5,
+            "Walker2d-v5",
+            ctrl_cost_weight=1e-3,
         )
         env = gym.wrappers.RecordEpisodeStatistics(env)
         return env
@@ -110,12 +106,8 @@ class Learner(nn.Module):
 
 def evaluate(learner, num_episodes=5):
     env = gym.make(
-        "LunarLander-v3",
-        continuous=True,
-        gravity=-10.0,
-        enable_wind=True,
-        wind_power=15.0,
-        turbulence_power=1.5,
+        "Walker2d-v5",
+        ctrl_cost_weight=1e-3,
     )
 
     avg_returns = []
@@ -142,10 +134,10 @@ def evaluate(learner, num_episodes=5):
 
 def train(args):
     wandb.init(
-        project="Lunar-DAggers", config=vars(args), entity="l16h7", group=args.group
+        project="Walker2d-DAggers", config=vars(args), entity="l16h7", group=args.group
     )
 
-    os.makedirs("dagger_checkpoints", exist_ok=True)
+    os.makedirs("walker2d_dagger_checkpoints", exist_ok=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     envs = gym.vector.SyncVectorEnv([make_env() for _ in range(args.num_envs)])
@@ -206,6 +198,12 @@ def train(args):
         # Update learner
         for _ in range(args.n_epochs):
             data = rb.sample(args.batch_size)
+
+            # Ensure data is float32 to match network dtypes
+            data = data._replace(
+                observations=data.observations.float(),
+                actions=data.actions.float()
+            )
 
             learner_actions = learner(data.observations)
 
