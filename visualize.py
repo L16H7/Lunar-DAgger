@@ -74,12 +74,8 @@ class SACAgent(nn.Module):
 def main():
     # Create environment with human render mode
     env = gym.make(
-        "LunarLander-v3",
-        continuous=True,
-        gravity=-10.0,
-        enable_wind=True,
-        wind_power=15.0,
-        turbulence_power=1.5,
+        "Walker2d-v5",
+        ctrl_cost_weight=1e-3,
         render_mode="human",
     )
 

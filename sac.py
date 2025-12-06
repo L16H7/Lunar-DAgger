@@ -103,7 +103,7 @@ class SACAgent(nn.Module):
         self.actor_optimizer = Adam(list(self.actor.parameters()), lr=3e-4)
 
     def get_action(self, state):
-        state = torch.FloatTensor(state)
+        state = torch.tensor(state, dtype=torch.float32)
         mean, log_std = self.actor(state)
         std = log_std.exp()
         normal = Normal(mean, std)
@@ -119,14 +119,7 @@ class SACAgent(nn.Module):
 
 
 def evaluate(agent, args, num_episodes=5):
-    env = gym.make(
-        "LunarLander-v3",
-        continuous=True,
-        gravity=-10.0,
-        enable_wind=True,
-        wind_power=15.0,
-        turbulence_power=1.5,
-    )
+    env = gym.make("Walker2d-v5", ctrl_cost_weight=1e-3)
 
     avg_returns = []
     for _ in range(num_episodes):
@@ -154,12 +147,8 @@ def evaluate(agent, args, num_episodes=5):
 def make_env():
     def _thunk():
         env = gym.make(
-            "LunarLander-v3",
-            continuous=True,
-            gravity=-10.0,
-            enable_wind=True,
-            wind_power=15.0,
-            turbulence_power=1.5,
+            "Walker2d-v5",
+            ctrl_cost_weight=1e-3,
         )
         env = gym.wrappers.RecordEpisodeStatistics(env)
         return env
@@ -168,7 +157,7 @@ def make_env():
 
 
 def train(args):
-    wandb.init(project="Lunar-DAgger", config=vars(args), entity="l16h7")
+    wandb.init(project="Walker2d-SAC", config=vars(args), entity="l16h7")
 
     if args.checkpoint_dir:
         os.makedirs(args.checkpoint_dir, exist_ok=True)
@@ -208,6 +197,12 @@ def train(args):
             continue
 
         data = rb.sample(batch_size=args.batch_size)
+
+        # Ensure data is float32 to match network dtypes
+        data = data._replace(
+            observations=data.observations.float(),
+            next_observations=data.next_observations.float()
+        )
 
         with torch.no_grad():
             next_state_action, next_state_log_pi, _ = agent.get_action(
