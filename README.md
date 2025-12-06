@@ -1,20 +1,13 @@
-# Lunar-DAgger — SAC training on LunarLander
+# Lunar-DAgger — DAgger training on LunarLander
 
-This repository contains a small implementation of Soft Actor-Critic (SAC) used to train a continuous LunarLander environment (based on Gymnasium). The training script logs metrics to Weights & Biases and writes checkpoints into the `checkpoints/` folder.
+This repository contains an implementation of Dataset Aggregation (DAgger) used to train a continuous LunarLander environment (based on Gymnasium). The training script logs metrics to Weights & Biases and writes checkpoints into the `dagger_checkpoints/` folder.
 
 ---
 
-## 📌 Results
-
-Below is an example training run output (rewards over time) captured during one of the experiments in this repo.
+## Expert Training
 
 ![Rewards plot](rewards.png)
-
----
-
-## ⚙️ Hyperparameters for the provided run
-
-These are the exact parameters you provided that were used to produce the example run shown above:
+The expert is trained using Soft Actor-Critic (SAC) with the following hyperparameters:
 
 - alpha: 0.2 (entropy regularization)
 - batch_size: 256
@@ -29,20 +22,6 @@ These are the exact parameters you provided that were used to produce the exampl
 - seed: 42
 - target_update_freq: 1
 - tau: 0.005
-
----
-
-## 🚀 Quick start — reproduce a training run
-
-1. Create a Python virtual environment and install requirements:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-2. Train with the same hyperparameters used for the plot (adjust total timesteps as you see fit):
 
 ```bash
 python sac.py \
@@ -61,3 +40,39 @@ python sac.py \
   --seed 42 \
   --total-timesteps 5000000
 ```
+
+## DAgger Training
+
+DAgger is trained with default hyperparameters, except for `--beta` and `--beta-decay`
+
+```bash
+python dagger.py --total-timesteps 100_000 --beta 1 --beta-decay 0.99
+```
+
+I am just curious about training with
+
+1. full experts, basic supervised learning
+2. full learner, learner acts all the time and expert corrects the time.
+3. DAgger with decaying beta, starting from expert actions only to learner actions only.
+
+Each experiment is run with 5 different seeds.
+
+## Hypothesis
+
+My hypothesis is standard DAgger with decaying beta should perform best and full learner should perform worst.
+
+## Results
+
+Full learner performs the best. Full expert performs the worst. DAgger with decaying beta is in between.
+
+## Explanation
+
+I am now comtemplating why.
+
+### DAgger returns
+
+![DAgger Rewards plot](dagger_returns.png)
+
+### DAgger lengths
+
+![DAgger Lengths plot](dagger_lengths.png)
